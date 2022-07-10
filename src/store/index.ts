@@ -1,6 +1,7 @@
 import { createStore } from 'vuex'
 import router from '@/router'
 import { Task } from '@/models/Task'
+import { getTasks, addTask, editTask, deleteTask } from '@/services'
 
 export default createStore({
   state: {
@@ -21,11 +22,9 @@ export default createStore({
     },
     addTask (state, payload: Task): void {
       state.tasks.push(payload)
-      localStorage.setItem('tasks', JSON.stringify(state.tasks))
     },
     delete (state, payload: string): void {
       state.tasks = state.tasks.filter(task => task.id !== payload)
-      localStorage.setItem('tasks', JSON.stringify(state.tasks))
     },
     task (state, payload: string): void {
       if (!state.tasks.find((task: Task) => task.id === payload) ?? state.task) {
@@ -39,7 +38,6 @@ export default createStore({
     update (state, payload: Task): void {
       state.tasks =
         state.tasks.map((task: Task) => task.id === payload.id ? payload : task)
-      localStorage.setItem('tasks', JSON.stringify(state.tasks))
       router.push('/')
     },
     reset (state): void {
@@ -53,28 +51,47 @@ export default createStore({
     }
   },
   actions: {
-    addTask ({ commit }, task: Task): void {
-      commit('addTask', task)
+    async addTask ({ commit }, task: Task): Promise<void> {
+      try {
+        const res = await addTask(task)
+        commit('addTask', res)
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error(err)
+      }
     },
-    deleteTask ({ commit }, id: string): void {
-      commit('delete', id)
+    async deleteTask ({ commit }, id: string): Promise<void> {
+      try {
+        await deleteTask(id)
+        commit('delete', id)
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error(error)
+      }
     },
     setTask ({ commit }, id: string): void {
       commit('task', id)
     },
-    updateTask ({ commit }, data: Task): void {
-      commit('update', data)
+    async updateTask ({ commit }, task: Task): Promise<void> {
+      try {
+        const res = await editTask(task)
+        commit('update', res)
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error(error)
+      }
     },
     resetTask ({ commit }): void {
       commit('reset')
     },
-    loadLS ({ commit }): void {
-      if (localStorage.getItem('tasks')) {
-        const tasks: Array<Task> = JSON.parse(localStorage.getItem('tasks') ?? '[]')
-        commit('loadFromLS', tasks)
+    async loadLS ({ commit }): Promise<void> {
+      try {
+        const res: Task[] = await getTasks()
+        commit('loadFromLS', res)
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error(error)
       }
-
-      localStorage.setItem('tasks', JSON.stringify([]))
     }
   },
   modules: {
